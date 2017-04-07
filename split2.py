@@ -142,7 +142,7 @@ def getIndexOf(filename, keyword):
 # Returns a list of the indexes of the beginning of all the line headers (rows)
 def getIndexOfLineHeaders(filename):
     indicesOfLines = []
-    lineNames = ["Indications", "ORIGINAL REPORT", "EXAM", "COMPARISON", "IMPRESSION", "HISTORY", "PROSTATE", "LOCAL STAGING", "LYMPH NODES", "BONES"]
+    lineNames = ["Indications", "REPORT", "EXAM", "COMPARISON", "IMPRESSION", "HISTORY", "PROSTATE", "LOCAL STAGING", "LYMPH NODES", "BONES"]
     for lineName in lineNames:
         indicesOfLines.append(getIndexOf(filename, lineName))
     return indicesOfLines
@@ -185,9 +185,17 @@ def categorizeSeries(filename):
     categoryList = []
     for seriesIndex in seriesIndices:
         for i in range(len(lineIndices)):
-            if (seriesIndex < lineIndices[i] and seriesIndex > lineIndices[i-1]):
-                categoryList.append(i)
-        if (seriesIndex > lineIndices[len(lineIndices)-1]):
+            if lineIndices[i-1] != 0:
+                if seriesIndex < lineIndices[i] and seriesIndex > lineIndices[i-1]:
+                    categoryList.append(i)
+            if lineIndices[i-1] == 0:
+                if seriesIndex < lineIndices[i] and seriesIndex > lineIndices[i-2]:
+                    # very unelegant and ugly but too lazy to fix
+                    if lineIndices[i-2] != 0:
+                        categoryList.append(i-1)
+                    else:
+                        categoryList.append(i-2)
+        if seriesIndex > lineIndices[len(lineIndices)-1]:
             categoryList.append(len(lineIndices))
     return categoryList
 
@@ -207,11 +215,7 @@ def getCategorizedSeries(filename):
     count = 0
     while i < (len(categories)):
         if categories[i] > categories[i-1]:
-            diff = categories[i] > categories[i-1]
-            if diff == 1:
-                seriesList.insert(i + count, ',')
-            if diff == 2:
-                seriesList.insert(i+count+1, ',')
+            seriesList.insert(i + count, ',')
             count += 1
         i += 1
     return seriesList
@@ -220,7 +224,7 @@ def writeMetaData():
     path = 'C:\\Users\\M144964\\Desktop\\metadata.csv'
     inputList = []
     # used to be called headers but that could be confusing
-    categories = [["AssnNum", "Lines", "Indications-Index", "ORIGINAL REPORT-Index", "EXAM-Index", "COMPARISON-Index", "IMPRESSION-Index", "HISTORY-Index", "PROSTATE-Index", "LOCAL STAGING-Index", "LYMPH NODES", "BONES-Index"]]
+    categories = [["AssnNum", "Lines", "Indications-Index", "ORIGINAL/REVISED REPORT-Index", "EXAM-Index", "COMPARISON-Index", "IMPRESSION-Index", "HISTORY-Index", "PROSTATE-Index", "LOCAL STAGING-Index", "LYMPH NODES", "BONES-Index"]]
     inputsList = categories + inputList
     directory = "C:\\Users\\M144964\\Desktop\\rad"
     # directory = "Z:\\MR\\7.0 Research Projects\\Anthony-Prostate-Project\\radreports"
@@ -236,12 +240,35 @@ def writeMetaData():
         write(path, inputsList)
         print(getIndexOfLineHeaders(filename))
 
+# Get specific series... example: get prostate series by looking at all the series on row 7
+def getSpecificSeries(filename, seriesRowNumber):
+    specificSeries = []
+    seriesList = getSeries(filename)
+    categories = categorizeSeries(filename)
+    for i in range(len(categories)):
+        if categories[i] == seriesRowNumber:
+            specific = seriesList[i]
+            specificSeries.append(specific)
+    return specificSeries
+
+def getProstateSeries(filename):
+    return getSpecificSeries(filename, 7)
+
+def getLocalStagingSeries(filename):
+    return getSpecificSeries(filename, 8)
+
+def getLymphSeries(filename):
+    return getSpecificSeries(filename, 9)
+
+def getBoneSeries(filename):
+    return getSpecificSeries(filename, 10)
+
 def main():
-    path = 'C:\\Users\\M144964\\Desktop\\split.csv'
+    path = 'C:\\Users\\M144964\\Desktop\\boneSeries.csv'
     seriesList = []
     # used to be called headers but that could be confusing
-    fields = [["AssnNum", "Prostate", "Local_Staging", "Lymph Nodes", "Bones"]]
-    seriesList = fields + seriesList
+    # fields = [["AssnNum", "Series"]]
+    # seriesList = fields + seriesList
     directory = "C:\\Users\\M144964\\Desktop\\rad"
     # directory = "Z:\\MR\\7.0 Research Projects\\Anthony-Prostate-Project\\radreports"
     filenames = getFileNames(directory)
@@ -249,12 +276,12 @@ def main():
         AssnNum = getAssnNum(filename)
         # # series = getSeries(filename)
         # # print(series)
-        series = getCategorizedSeries(filename)
+        series = getBoneSeries(filename)
         series = [AssnNum] + series
         seriesList.append(series)
         # # print(series)
         # # print(seriesList)
-        write2(path, seriesList)
+        write(path, seriesList)
 
         # print(getIndexOfLineHeaders(filename))
         # print (categorizeSeries(filename))
