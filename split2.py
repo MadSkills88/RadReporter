@@ -2,6 +2,7 @@ import textmining_v3
 import re
 import csv
 import glob, os
+from openpyxl import load_workbook
 
 # Need to read what row the first series starts on for each file... not all of the start on prostate for example
 # Also need to add way to skip over multiple rows... many files for example have series for row 5, 7, 10, 11... skips over 6, 8, 9
@@ -51,7 +52,7 @@ def getSeries(filename):
     # print (count)
     return list;
 
-# Writes a list of lists into a .csv file
+# Writes a list of lists (2D list) into a .csv file
 def write(path, list):
     # list = [["Patient1_Series", 1, 2], ["Patient2_Series", 2, 3], ["Patient3_Series", 4, 5]]
     out = open(path, 'w')
@@ -62,16 +63,21 @@ def write(path, list):
         out.write('\n')
     out.close()
 
+# Writes for 2D list but space instead of comma between cells
 def write2(path, list):
     # list = [["Patient1_Series", 1, 2], ["Patient2_Series", 2, 3], ["Patient3_Series", 4, 5]]
     out = open(path, 'w')
-    newColumn = False
     for row in list:
         for column in row:
-            if (newColumn or column == row[0]):
-                out.write('%s,' % column)  #add %d, for separate cells
-            else:
-                out.write('%s ' % column)
+            out.write('%s ' % column)
+        out.write('\n')
+    out.close()
+
+# Writes for 1D list
+def write3(path, list):
+    out = open(path, 'w')
+    for item in list:
+        out.write('%s,' % item)
         out.write('\n')
     out.close()
 
@@ -263,12 +269,75 @@ def getLymphSeries(filename):
 def getBoneSeries(filename):
     return getSpecificSeries(filename, 10)
 
+def countOccurrences(filename, category, keyword):
+    count = 0
+    if category.lower() == "prostate":
+        series = getProstateSeries(filename)
+    elif category.lower() == "local_staging":
+        series = getLocalStagingSeries(filename)
+    elif category.lower() == "lymph":
+        series = getLymphSeries(filename)
+    elif category.lower() == "bone":
+        series = getBoneSeries(filename)
+
+    for serie in series:
+        if serie == keyword:
+            count += 1
+    return count
+
+# Collects all of the distinct series of the __category__ in a list... ex category: "prostate"
+def parseDistinctSeries(category):
+    directory = "C:\\Users\\M144964\\Desktop\\rad"
+    filenames = getFileNames(directory)
+    distinctSeries = []
+    distinctSeriesNum = []
+    for filename in filenames:
+        if category.lower() == "prostate":
+            series = getProstateSeries(filename)
+        elif category.lower() == "local_staging":
+            series = getLocalStagingSeries(filename)
+        elif category.lower() == "lymph":
+            series = getLymphSeries(filename)
+        elif category.lower() == "bone":
+            series = getBoneSeries(filename)
+
+        for serie in series:
+            if serie not in distinctSeries and serie != '':
+                distinctSeries.append(serie)
+
+    distinctSeriesNum = sorted(distinctSeries, key=lambda x: int(x))
+    print (distinctSeriesNum)
+    return distinctSeriesNum
+
+def counter():
+    count = 0
+    category = "lymph"
+    # Don't forget to change to path to match the category
+    path = 'C:\\Users\\M144964\\Desktop\\countLymphSeries.csv'
+    directory = "C:\\Users\\M144964\\Desktop\\rad"
+    filenames = getFileNames(directory)
+    keywords = parseDistinctSeries(category)
+    countList = []
+    # The list that will be written into path
+    writtenList = []
+    for keyword in keywords:
+        for filename in filenames:
+            count += countOccurrences(filename, category, keyword)
+        countList.append(count)
+        count = 0
+    # since countList and keywords should be same length
+    for i in range(len(countList)):
+        writtenList.append(keywords[i] + "," + str(countList[i]))
+    print (countList)
+    write3(path, writtenList)
+    # return countList
+
 def main():
-    path = 'C:\\Users\\M144964\\Desktop\\boneSeries.csv'
+    path = 'C:\\Users\\M144964\\Desktop\\prostateSeries.csv'
     seriesList = []
     # used to be called headers but that could be confusing
-    # fields = [["AssnNum", "Series"]]
-    # seriesList = fields + seriesList
+    fields = [["AssnNum", "Series"]]
+    seriesList = fields + seriesList
     directory = "C:\\Users\\M144964\\Desktop\\rad"
     # directory = "Z:\\MR\\7.0 Research Projects\\Anthony-Prostate-Project\\radreports"
     filenames = getFileNames(directory)
@@ -276,7 +345,8 @@ def main():
         AssnNum = getAssnNum(filename)
         # # series = getSeries(filename)
         # # print(series)
-        series = getBoneSeries(filename)
+        series = getProstateSeries(filename)
+        print(series)
         series = [AssnNum] + series
         seriesList.append(series)
         # # print(series)
@@ -287,7 +357,7 @@ def main():
         # print (categorizeSeries(filename))
         # print (getCategorizedSeries(filename))
 
-    # write(path, sample)
-
-main()
-
+# countOccurrences('C:\\Users\\M144964\\Desktop\\rad2\\19908988-2.txt')
+# main()
+counter()
+# parseDistinctSeriesProstate()
