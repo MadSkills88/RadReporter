@@ -107,6 +107,27 @@ def getIndexOfLineHeaders(filename):
 #         print('\n')
 #     print(list)
 
+# Sort by AssnNum
+def sortLines(inputPath, outputPath):
+    nexus = open(inputPath, "r")
+    nexusLines = nexus.readlines()
+    nexus.close()
+    AssnNumList = []
+    for line in nexusLines:
+        if line != nexusLines[0]:
+            AssnNum = int(line[12:20])
+            AssnNumList.append(AssnNum)
+            # print(AssnNum)
+    print(AssnNumList)
+    AssnNumList = sorted(AssnNumList, key=int)
+    print(AssnNumList)
+    for line in nexusLines:
+        for num in AssnNumList:
+            if str(num) in line:
+                nexusLines[AssnNumList.index(num)] = line
+    print(nexusLines)
+    write(outputPath, nexusLines)
+
 def addSignalWeighting(inputPath, outputPath, directory):
     list = []
     signal1 = 'T1'
@@ -195,9 +216,10 @@ def addIndications(inputPath, outputPath, directory):
 
 def main():
     # path = 'C:\\Users\\M144964\\Desktop\\mapper.csv'
-    inputPath = 'C:\\Users\\M144964\\Desktop\\nexus2.csv'
-    outputPath = 'C:\\Users\\M144964\\Desktop\\nexus3.csv'
-    directory = "C:\\Users\\M144964\\Desktop\\rad"
-    addIndications(inputPath, outputPath, directory)
+    inputPath = 'C:\\Users\\M144964\\Desktop\\nexus.csv'
+    outputPath = 'C:\\Users\\M144964\\Desktop\\nexus0.csv'
+    directory = "C:\\Users\\M144964\\Desktop\\rad2"
+    # addIndications(inputPath, outputPath, directory)
+    sortLines(inputPath, outputPath)
 
 main()
